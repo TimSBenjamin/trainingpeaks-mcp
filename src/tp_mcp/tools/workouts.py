@@ -245,6 +245,7 @@ async def tp_get_workouts(
                     "tss_planned": w.tss_planned,
                     "tss_actual": w.tss_actual,
                     "description": w.description,
+                    "order_on_day": w.order_on_day,
                 }
                 for w in workouts
             ]
@@ -907,16 +908,24 @@ async def tp_copy_workout(
         }
 
 
-async def tp_reorder_workouts(workout_ids: list[int]) -> dict[str, Any]:
-    """Reorder workouts on a given day.
+async def tp_reorder_workouts(workout_ids: list[int | str], date: str | None = None) -> dict[str, Any]:
+    """Reorder the workouts displayed on a single day.
+
+    Uses the calendar's own order endpoint (what drag-and-drop in the web app calls),
+    which orders endurance and strength workouts together in one request.
 
     Args:
-        workout_ids: List of workout IDs in desired display order.
+        workout_ids: Workout IDs in desired display order. Strength workout IDs (from
+            tp_get_strength_workouts) may be mixed in when `date` is given.
+        date: The day (YYYY-MM-DD). Needed to tell strength workouts from endurance ones;
+            without it every ID is treated as an endurance workout.
 
     Returns:
         Dict with confirmation or error.
     """
-    import asyncio
+    import httpx
+
+    from tp_mcp.tools.strength import STRENGTH_API_BASE, _access, _headers
 
     if not workout_ids:
         return {
@@ -924,40 +933,55 @@ async def tp_reorder_workouts(workout_ids: list[int]) -> dict[str, Any]:
             "error_code": "VALIDATION_ERROR",
             "message": "workout_ids must not be empty.",
         }
+    if date is not None:
+        try:
+            date = date_type.fromisoformat(str(date)).isoformat()
+        except ValueError:
+            return {"isError": True, "error_code": "VALIDATION_ERROR", "message": "date must be YYYY-MM-DD."}
 
     async with TPClient() as client:
-        athlete_id = await client.ensure_athlete_id()
-        if not athlete_id:
-            return {
-                "isError": True,
-                "error_code": "AUTH_INVALID",
-                "message": "Could not get athlete ID. Re-authenticate.",
-            }
+        athlete_id, access, err = await _access(client)
+        if err:
+            return err
 
-        async def update_order(wid: int, order: int) -> dict[str, Any] | None:
-            get_endpoint = f"/fitness/v6/athletes/{athlete_id}/workouts/{wid}"
-            get_response = await client.get(get_endpoint)
-            if get_response.is_error or not isinstance(get_response.data, dict):
-                return {"workout_id": wid, "error": "Not found"}
+        strength_ids: set[str] = set()
+        if date is not None:
+            try:
+                async with httpx.AsyncClient(timeout=30) as h:
+                    r = await h.get(
+                        f"{STRENGTH_API_BASE}/rx/activity/v1/workouts/calendar/{athlete_id}/{date}/{date}",
+                        headers=_headers(access or ""),
+                    )
+            except (httpx.TimeoutException, httpx.RequestError):
+                return {"isError": True, "error_code": "NETWORK_ERROR", "message": "Could not list strength workouts."}
+            if r.status_code != 200:
+                return {
+                    "isError": True,
+                    "error_code": "API_ERROR",
+                    "message": f"Strength workout list failed: {r.status_code}",
+                }
+            body = r.json()
+            items = body if isinstance(body, list) else body.get("data") or []
+            strength_ids = {str(w.get("id")) for w in items}
 
-            existing = get_response.data
-            existing["orderOnDay"] = order
+        endurance = []
+        strength = []
+        for position, wid in enumerate(workout_ids):
+            if str(wid) in strength_ids:
+                strength.append({"id": str(wid), "order": position})
+            else:
+                endurance.append({"id": int(wid), "order": position})
 
-            put_endpoint = f"/fitness/v6/athletes/{athlete_id}/workouts/{wid}"
-            put_response = await client.put(put_endpoint, json=existing)
-            if put_response.is_error:
-                return {"workout_id": wid, "error": put_response.message}
-            return None
+        payload: dict[str, Any] = {"workouts": endurance}
+        if strength:
+            payload["strengthWorkouts"] = strength
 
-        tasks = [update_order(wid, idx) for idx, wid in enumerate(workout_ids)]
-        results = await asyncio.gather(*tasks)
-
-        errors = [r for r in results if r is not None]
-        if errors:
+        response = await client.post(f"/fitness/v6/athletes/{athlete_id}/calendar/order", json=payload)
+        if response.is_error:
             return {
                 "isError": True,
                 "error_code": "API_ERROR",
-                "message": f"Some workouts failed to reorder: {errors}",
+                "message": f"Failed to reorder workouts: {response.message}",
             }
 
         return {

@@ -343,16 +343,22 @@ TOOLS = [
     Tool(
         name="tp_reorder_workouts",
         description=(
-            "Reorder the workouts displayed on a single day. Pass every workout ID for that day (from "
-            "tp_get_workouts) in the desired order. Changes display order only - dates and content untouched."
+            "Reorder the workouts displayed on a single day, as drag-and-drop does in the web calendar. Pass every "
+            "workout ID for that day in the desired order (endurance IDs from tp_get_workouts, strength IDs from "
+            "tp_get_strength_workouts) plus the day's date so strength workouts are ordered with the rest. "
+            "Notes and events cannot be reordered. Changes display order only - dates and content untouched."
         ),
         input_schema={
             "type": "object",
             "properties": {
                 "workout_ids": {
                     "type": "array",
-                    "items": {"type": "integer"},
-                    "description": "Workout IDs in desired display order",
+                    "items": {"type": ["integer", "string"]},
+                    "description": "Workout IDs in desired display order (endurance and strength)",
+                },
+                "date": {
+                    "type": "string",
+                    "description": "The day, YYYY-MM-DD (needed when strength workouts are included)",
                 },
             },
             "required": ["workout_ids"],
@@ -1686,7 +1692,8 @@ async def _h_copy_workout(args):
     )
 
 @_handler("tp_reorder_workouts")
-async def _h_reorder(args): return await tp_reorder_workouts(workout_ids=args["workout_ids"])
+async def _h_reorder(args):
+    return await tp_reorder_workouts(workout_ids=args["workout_ids"], date=args.get("date"))
 
 @_handler("tp_unpair_workout")
 async def _h_unpair(args): return await tp_unpair_workout(workout_id=args["workout_id"])
