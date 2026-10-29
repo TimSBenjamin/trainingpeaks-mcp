@@ -59,6 +59,7 @@ from tp_mcp.tools import (
     tp_get_athlete_settings,
     tp_get_atp,
     tp_get_availability,
+    tp_get_best_efforts,
     tp_get_equipment,
     tp_get_events,
     tp_get_fitness,
@@ -66,23 +67,28 @@ from tp_mcp.tools import (
     tp_get_libraries,
     tp_get_library_item,
     tp_get_library_items,
+    tp_get_metric_insights,
     tp_get_metrics,
     tp_get_next_event,
     tp_get_note,
     tp_get_note_comments,
     tp_get_nutrition,
+    tp_get_peak_trends,
     tp_get_peaks,
     tp_get_pool_length_settings,
     tp_get_profile,
     tp_get_strength_summary,
     tp_get_strength_workout,
     tp_get_strength_workouts,
+    tp_get_time_in_zones,
     tp_get_training_plan,
     tp_get_training_plan_workouts,
+    tp_get_training_summary,
     tp_get_weekly_summary,
     tp_get_workout,
     tp_get_workout_comments,
     tp_get_workout_note,
+    tp_get_workout_peaks,
     tp_get_workout_prs,
     tp_get_workout_types,
     tp_get_workouts,
@@ -584,6 +590,107 @@ TOOLS = [
                 },
             },
             "required": [],
+        },
+    ),
+    Tool(
+        name="tp_get_time_in_zones",
+        description="Get minutes spent in each training zone (the dashboard time-in-zones report) over a date "
+                    "range of up to 366 days. zone_type is heart_rate, power or speed; by_week returns one row per "
+                    "week; workout_type_ids restricts to sports (see tp_get_workout_types).",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "start_date": {"type": "string", "description": "YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "YYYY-MM-DD"},
+                "zone_type": {"type": "string", "enum": ["heart_rate", "power", "speed"], "default": "heart_rate"},
+                "by_week": {"type": "boolean", "default": False},
+                "workout_type_ids": {"type": "array", "items": {"type": "integer"}},
+            },
+            "required": ["start_date", "end_date"],
+        },
+    ),
+    Tool(
+        name="tp_get_metric_insights",
+        description="Get health-metric trend insights over a date range (max 90 days): per metric (resting pulse, "
+                    "sleep, HRV, weight...) the start and end values, change, previous reading and status.",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "start_date": {"type": "string", "description": "YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "YYYY-MM-DD"},
+            },
+            "required": ["start_date", "end_date"],
+        },
+    ),
+    Tool(
+        name="tp_get_best_efforts",
+        description="Get the best efforts (mean-max curve) over a date range of up to 366 days: for each duration "
+                    "(5 s ... 3 h) the best power, heart rate, speed or cadence, with the workout and date that set "
+                    "it; metric pace_by_distance gives best speed over 1 km ... 100 mi. Unlike tp_get_peaks (all-time "
+                    "ranked records for one duration), this returns the whole curve for any window.",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "start_date": {"type": "string", "description": "YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "YYYY-MM-DD"},
+                "metric": {
+                    "type": "string",
+                    "enum": ["power", "heart_rate", "speed", "cadence", "pace_by_distance"],
+                    "default": "power",
+                },
+                "workout_type_ids": {"type": "array", "items": {"type": "integer"}},
+            },
+            "required": ["start_date", "end_date"],
+        },
+    ),
+    Tool(
+        name="tp_get_training_summary",
+        description="Get planned vs actual training totals over a date range of up to 366 days: duration, distance, "
+                    "TSS, intensity factor, calories, energy and elevation. group_by day or week gives a trend "
+                    "(by_sport splits each row by sport); total gives one row per sport over the whole range. "
+                    "Unlike tp_get_weekly_summary this covers any range, any sport split and planned vs actual.",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "start_date": {"type": "string", "description": "YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "YYYY-MM-DD"},
+                "group_by": {"type": "string", "enum": ["day", "week", "total"], "default": "week"},
+                "by_sport": {"type": "boolean", "default": False},
+            },
+            "required": ["start_date", "end_date"],
+        },
+    ),
+    Tool(
+        name="tp_get_peak_trends",
+        description="Get the best 5 s, 1 min, 5 min, 20 min and 60 min efforts for each week or month over up to "
+                    "731 days (power, heart_rate, speed or cadence), with the workout that set each and the period's "
+                    "training totals. Use it to see fitness trending; use tp_get_best_efforts for the full curve.",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "start_date": {"type": "string", "description": "YYYY-MM-DD"},
+                "end_date": {"type": "string", "description": "YYYY-MM-DD"},
+                "metric": {
+                    "type": "string",
+                    "enum": ["power", "heart_rate", "speed", "cadence", "pace_by_distance"],
+                    "default": "power",
+                },
+                "group_by": {"type": "string", "enum": ["week", "month"], "default": "week"},
+                "workout_type_ids": {"type": "array", "items": {"type": "integer"}},
+            },
+            "required": ["start_date", "end_date"],
+        },
+    ),
+    Tool(
+        name="tp_get_workout_peaks",
+        description="Get the best efforts inside one completed workout: best power, heart rate, speed and cadence "
+                    "over windows from seconds to hours (with when each started), fastest speed over set distances "
+                    "for runs, left/right power balance, and min/max/avg per channel. Complements tp_analyze_workout "
+                    "(laps, series, derived metrics).",
+        input_schema={
+            "type": "object",
+            "properties": {"workout_id": {"type": "string", "description": "Workout ID from tp_get_workouts"}},
+            "required": ["workout_id"],
         },
     ),
     Tool(
@@ -1810,6 +1917,43 @@ async def _h_weekly_summary(args): return await tp_get_weekly_summary(week_of=ar
 
 @_handler("tp_get_atp")
 async def _h_get_atp(args): return await tp_get_atp(start_date=args["start_date"], end_date=args["end_date"])
+
+@_handler("tp_get_time_in_zones")
+async def _h_time_in_zones(args):
+    return await tp_get_time_in_zones(
+        start_date=args["start_date"], end_date=args["end_date"],
+        zone_type=args.get("zone_type", "heart_rate"), by_week=args.get("by_week", False),
+        workout_type_ids=args.get("workout_type_ids"),
+    )
+
+@_handler("tp_get_metric_insights")
+async def _h_metric_insights(args):
+    return await tp_get_metric_insights(start_date=args["start_date"], end_date=args["end_date"])
+
+@_handler("tp_get_best_efforts")
+async def _h_best_efforts(args):
+    return await tp_get_best_efforts(
+        start_date=args["start_date"], end_date=args["end_date"],
+        metric=args.get("metric", "power"), workout_type_ids=args.get("workout_type_ids"),
+    )
+
+@_handler("tp_get_training_summary")
+async def _h_training_summary(args):
+    return await tp_get_training_summary(
+        start_date=args["start_date"], end_date=args["end_date"],
+        group_by=args.get("group_by", "week"), by_sport=args.get("by_sport", False),
+    )
+
+@_handler("tp_get_peak_trends")
+async def _h_peak_trends(args):
+    return await tp_get_peak_trends(
+        start_date=args["start_date"], end_date=args["end_date"],
+        metric=args.get("metric", "power"), group_by=args.get("group_by", "week"),
+        workout_type_ids=args.get("workout_type_ids"),
+    )
+
+@_handler("tp_get_workout_peaks")
+async def _h_workout_peaks(args): return await tp_get_workout_peaks(workout_id=args["workout_id"])
 
 @_handler("tp_list_training_plans")
 async def _h_list_training_plans(args): return await tp_list_training_plans()

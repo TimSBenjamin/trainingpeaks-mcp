@@ -138,7 +138,9 @@ async def test_list_athletes_in_group_athlete_not_in_roster():
 
 # ── write tools (create / rename / delete) — verified signatures ─────────────
 from tp_mcp.tools.groups import (
-    tp_create_group, tp_delete_group, tp_rename_group,
+    tp_create_group,
+    tp_delete_group,
+    tp_rename_group,
 )
 
 CREATED = {"id": 337680, "coachId": 1135463, "name": "New", "athleteIds": [], "isDefault": False}
@@ -223,7 +225,8 @@ async def test_delete_unknown_group_not_found():
 
 # ── membership (add / remove athletes) — verified signatures ─────────────────
 from tp_mcp.tools.groups import (
-    tp_add_athletes_to_group, tp_remove_athletes_from_group,
+    tp_add_athletes_to_group,
+    tp_remove_athletes_from_group,
 )
 
 

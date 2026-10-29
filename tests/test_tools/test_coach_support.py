@@ -1,12 +1,11 @@
 """Tests for coach account support: context var, ensure_athlete_id, schema injection."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
 from tp_mcp.client.context import athlete_override
 from tp_mcp.client.http import TPClient
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -312,7 +311,7 @@ class TestCacheBypass:
 
 class TestSchemaInjection:
     def test_non_exempt_tools_have_athlete_param(self):
-        from tp_mcp.server import TOOLS, _ATHLETE_EXEMPT_TOOLS
+        from tp_mcp.server import _ATHLETE_EXEMPT_TOOLS, TOOLS
         for tool in TOOLS:
             if tool.name not in _ATHLETE_EXEMPT_TOOLS:
                 assert "athlete" in tool.input_schema["properties"], (
@@ -320,7 +319,7 @@ class TestSchemaInjection:
                 )
 
     def test_exempt_tools_lack_athlete_param(self):
-        from tp_mcp.server import TOOLS, _ATHLETE_EXEMPT_TOOLS
+        from tp_mcp.server import _ATHLETE_EXEMPT_TOOLS, TOOLS
         for tool in TOOLS:
             if tool.name in _ATHLETE_EXEMPT_TOOLS:
                 assert "athlete" not in tool.input_schema["properties"], (
