@@ -781,7 +781,10 @@ TOOLS = [
     ),
     Tool(
         name="tp_update_hr_zones",
-        description="Update heart rate zones.",
+        description=(
+            "Update the athlete's heart rate settings (threshold, max, resting HR) for one sport; workout_type "
+            "defaults to general. Changes saved athlete settings."
+        ),
         input_schema={
             "type": "object",
             "properties": {
@@ -798,7 +801,10 @@ TOOLS = [
     ),
     Tool(
         name="tp_update_speed_zones",
-        description="Update run/swim pace zones.",
+        description=(
+            "Update the threshold pace for run (e.g. '4:30/km') and/or swim (e.g. '1:45/100m'). Changes saved "
+            "athlete settings."
+        ),
         input_schema={
             "type": "object",
             "properties": {
@@ -848,7 +854,7 @@ TOOLS = [
     ),
     Tool(
         name="tp_get_pool_length_settings",
-        description="Get pool length settings.",
+        description="Get the athlete's pool length setting for swim workouts.",
         input_schema={"type": "object", "properties": {}, "required": []},
     ),
     # --- Health Metrics ---
@@ -873,7 +879,10 @@ TOOLS = [
     ),
     Tool(
         name="tp_get_metrics",
-        description="Get health metrics for a date range.",
+        description=(
+            "Get logged health metrics for a date range: pulse, weight, HRV, sleep hours, SpO2, steps, RMR and "
+            "injury score. Log new values with tp_log_metrics."
+        ),
         input_schema={
             "type": "object",
             "properties": {
@@ -898,7 +907,10 @@ TOOLS = [
     # --- Equipment ---
     Tool(
         name="tp_get_equipment",
-        description="List equipment (bikes, shoes).",
+        description=(
+            "List the athlete's equipment (bikes, shoes) with their IDs; tp_update_equipment and "
+            "tp_delete_equipment take those IDs."
+        ),
         input_schema={
             "type": "object",
             "properties": {
@@ -953,7 +965,10 @@ TOOLS = [
     ),
     Tool(
         name="tp_delete_equipment",
-        description="Delete equipment.",
+        description=(
+            "Permanently delete a piece of equipment (bike, shoes) - irreversible. equipment_id from "
+            "tp_get_equipment."
+        ),
         input_schema={
             "type": "object",
             "properties": {"equipment_id": {"type": "string"}},
@@ -1044,7 +1059,10 @@ TOOLS = [
     ),
     Tool(
         name="tp_create_note",
-        description="Create a calendar note.",
+        description=(
+            "Create a calendar note on a date (title, optional description). Notes are separate from workouts and "
+            "events; list them with tp_list_notes, discuss them with tp_add_note_comment."
+        ),
         input_schema={
             "type": "object",
             "properties": {
@@ -1069,7 +1087,10 @@ TOOLS = [
     ),
     Tool(
         name="tp_get_note",
-        description="Get a calendar note by ID.",
+        description=(
+            "Get one calendar note by ID (title, description, date). note_id from tp_list_notes. Its comment "
+            "thread is separate: tp_get_note_comments."
+        ),
         input_schema={
             "type": "object",
             "properties": {"note_id": {"type": "string", "description": "Note ID"}},
@@ -1093,7 +1114,10 @@ TOOLS = [
     ),
     Tool(
         name="tp_get_note_comments",
-        description="Get all comments on a calendar note.",
+        description=(
+            "List the comment thread on a calendar note (athlete and coach comments). note_id from tp_list_notes. "
+            "Add one with tp_add_note_comment; for workouts use tp_get_workout_comments."
+        ),
         input_schema={
             "type": "object",
             "properties": {"note_id": {"type": "string", "description": "Note ID"}},
@@ -1117,7 +1141,10 @@ TOOLS = [
     ),
     Tool(
         name="tp_list_notes",
-        description="List calendar notes for a date range.",
+        description=(
+            "List calendar notes in a date range with their IDs, which tp_get_note, tp_update_note, tp_delete_note "
+            "and tp_get_note_comments take."
+        ),
         input_schema={
             "type": "object",
             "properties": {
@@ -1210,7 +1237,7 @@ TOOLS = [
     # --- Workout Library ---
     Tool(
         name="tp_get_libraries",
-        description="List workout library folders.",
+        description="List workout library folders with their IDs; library_id feeds tp_get_library_items.",
         input_schema={"type": "object", "properties": {}, "required": []},
     ),
     Tool(
