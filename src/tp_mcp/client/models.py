@@ -99,6 +99,7 @@ class WorkoutSummary(BaseModel):
     distance_actual: float | None = Field(default=None, alias="distance")
     completed: bool | None = Field(default=None)
     description: str | None = None
+    order_on_day: int | None = Field(default=None, alias="orderOnDay")
 
     @property
     def date(self) -> date_type:
