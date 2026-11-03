@@ -52,6 +52,7 @@ from tp_mcp.tools.library import (
 )
 from tp_mcp.tools.metric_insights import tp_get_metric_insights
 from tp_mcp.tools.metrics import tp_get_metrics, tp_get_nutrition, tp_log_metrics
+from tp_mcp.tools.notifications import tp_get_notifications
 from tp_mcp.tools.peak_trends import tp_get_peak_trends
 from tp_mcp.tools.peaks import tp_get_peaks, tp_get_workout_prs
 from tp_mcp.tools.plans import (
@@ -164,6 +165,7 @@ __all__ = [
     "tp_get_metric_insights",
     "tp_get_metrics",
     "tp_get_next_event",
+    "tp_get_notifications",
     "tp_get_note",
     "tp_get_note_comments",
     "tp_get_nutrition",

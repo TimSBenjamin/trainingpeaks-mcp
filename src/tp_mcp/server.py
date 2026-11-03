@@ -77,6 +77,7 @@ from tp_mcp.tools import (
     tp_get_note,
     tp_get_note_comments,
     tp_get_notification_settings,
+    tp_get_notifications,
     tp_get_nutrition,
     tp_get_peak_trends,
     tp_get_peaks,
@@ -576,6 +577,26 @@ TOOLS = [
         },
     ),
     # --- Fitness & Summary ---
+    Tool(
+        name="tp_get_notifications",
+        description=(
+            "Read the notification feed (the bell icon): comments on workouts, availability the athlete added, "
+            "threshold changes, completions. Newest first, with the workout / availability details and whether "
+            "each is read. Filter by days, unread_only or type."
+        ),
+        input_schema={
+            "type": "object",
+            "properties": {
+                "days": {"type": "integer", "default": 14, "description": "Look-back window (1-365)."},
+                "unread_only": {"type": "boolean", "default": False},
+                "type": {
+                    "type": "string",
+                    "description": "One notification type, e.g. WorkoutComment, AvailabilityCreated, ThresholdChange.",
+                },
+            },
+            "required": [],
+        },
+    ),
     Tool(
         name="tp_get_fitness",
         description="Get fitness/fatigue trend (CTL/ATL/TSB). Supports historical date ranges.",
@@ -2233,6 +2254,11 @@ async def _h_delete_strength(args):
     return await tp_delete_strength_workout(workout_id=args["workout_id"])
 
 # --- Fitness & Summary ---
+@_handler("tp_get_notifications")
+async def _h_get_notifications(args):
+    return await tp_get_notifications(
+        days=args.get("days", 14), unread_only=args.get("unread_only", False), type=args.get("type"))
+
 @_handler("tp_get_fitness")
 async def _h_get_fitness(args):
     return await tp_get_fitness(
